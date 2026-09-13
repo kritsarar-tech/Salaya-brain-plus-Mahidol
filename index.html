@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>โครงการ ศาลายา สมองดี ชีวีมีสุข (Cloud Sync)</title>
+  <!-- Chart.js and jsPDF -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1e5a52;
+      --primary-dark: #143e38;
+      --primary-light: #e8f4f2;
+      --accent: #d97706;
+      --accent-soft: #fef3c7;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #4b5563;
+      --border: #e2e8f0;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 25px rgba(0,0,0,0.05);
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 18px 16px 14px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .cloud-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      background: rgba(0,0,0,0.25);
+      padding: 3px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+    .status-dot.offline { background: #f59e0b; }
+    .status-dot.error { background: #ef4444; }
+
+    .header-title {
+      font-size: 17.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-subtitle {
+      font-size: 11.5px;
+      opacity: 0.85;
+      font-weight: 300;
+    }
+
+    /* Tab Navigation */
+    .nav-tabs {
+      display: flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-tab {
+      flex: 1;
+      text-align: center;
+      padding: 9px 2px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-tab.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    main {
+      flex: 1;
+      padding: 16px;
+      padding-bottom: 85px;
+      overflow-y: auto;
+    }
+
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-pill {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    input[type="text"], input[type="number"], input[type="date"], input[type="url"], select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fff;
+    }
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(30, 90, 82, 0.15);
+    }
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .question-box {
+      background: #fdfdfd;
+      border: 1px solid #edf2f7;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .question-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1f2937;
+    }
+    .radio-options {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .radio-label {
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .radio-label:active, .radio-label:hover {
+      background: var(--primary-light);
+    }
+    .radio-label input {
+      margin-right: 8px;
+      accent-color: var(--primary);
+    }
+
+    .horizontal-options {
+      display: flex;
+      gap: 8px;
+    }
+    .horizontal-options .radio-label {
+      flex: 1;
+      justify-content: center;
+    }
+
+    #section-9q {
+      display: none;
+      border-left: 4px solid var(--accent);
+      background: #fffdfa;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn:active {
+      opacity: 0.85;
+    }
+    .btn:disabled {
+      background: #94a3b8 !important;
+      cursor: not-allowed;
+      box-shadow: none !important;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #164640 100%);
+      color: white;
+      box-shadow: 0 4px 10px rgba(30, 90, 82, 0.25);
+    }
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--primary);
+      color: var(--primary);
+    }
+    .btn-danger-outline {
+      background: transparent;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
+    .btn-danger-outline:hover {
+      background: #fee2e2;
+    }
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      width: auto;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .status-normal { background: #dcfce7; color: #15803d; }
+    .status-warn { background: #fef3c7; color: #b45309; }
+    .status-alert { background: #fee2e2; color: #b91c1c; }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .record-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-bottom: 10px;
+      background: white;
+      position: relative;
+    }
+    .record-head {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .record-details {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .record-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+      align-items: center;
+      border-top: 1px dashed #f1f5f9;
+      padding-top: 8px;
+    }
+
+    .info-callout {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      color: #166534;
+      margin-bottom: 12px;
+    }
+    .alert-callout {
+      background: #fff7ed;
+      border-left: 4px solid #ea580c;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      color: #9a3412;
+      margin-bottom: 12px;
+    }
+
+    /* Loading overlay */
+    #loadingOverlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.85);
+      z-index: 1500;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e2e8f0;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div id="loadingText">กำลังเชื่อมต่อข้อมูลส่วนกลาง...</div>
+</div>
+
+<div class="app-container">
+  <!-- Header -->
+  <header>
+    <div class="header-top">
+      <span class="header-badge">โครงการชุมชนคนศาลายา</span>
+      <div class="cloud-status" onclick="switchTab('sync')">
+        <span class="status-dot" id="cloudDot"></span>
+        <span id="cloudStatusText">คลาวด์: กำลังเชื่อมต่อ...</span>
+      </div>
+    </div>
+    <div class="header-title">
+      <span>🧠 ศาลายา สมองดี ชีวีมีสุข</span>
+    </div>
+    <div class="header-subtitle">ระบบประเมินและคลาวด์ดาต้าเบสส่วนกลาง</div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="nav-tabs">
+    <div class="nav-tab active" onclick="switchTab('assess')">📝 แบบประเมิน</div>
+    <div class="nav-tab" onclick="switchTab('history')">📋 ข้อมูลรวม</div>
+    <div class="nav-tab" onclick="switchTab('stats')">📊 สถิติ</div>
+    <div class="nav-tab" onclick="switchTab('sync')">☁️ ส่วนกลาง</div>
+  </nav>
+
+  <main>
+    <!-- TAB 1: แบบประเมิน -->
+    <section id="tab-assess" class="tab-pane active">
+      <form id="screeningForm" onsubmit="event.preventDefault(); submitAssessment();">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">👤 ข้อมูลผู้รับการประเมิน</span>
+            <span class="badge-pill">ส่วนที่ 1</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label>ชื่อ-นามสกุล *</label>
+              <input type="text" id="patientName" placeholder="เช่น นายสมชาย ใจดี" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>อายุ (ปี) *</label>
+              <input type="number" id="patientAge" placeholder="เช่น 68" min="40" max="120" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>เพศ</label>
+              <select id="patientGender">
+                <option value="หญิง">หญิง</option>
+                <option value="ชาย">ชาย</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>วันที่ทำการประเมิน</label>
+              <input type="date" id="assessDate" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>ชื่อ-นามสกุล ผู้ประเมิน (เจ้าหน้าที่/อสม./แพทย์) *</label>
+            <input type="text" id="evaluatorName" placeholder="ระบุชื่อผู้ประเมิน" required>
+          </div>
+        </div>
+
+        <!-- 2Q -->
+        <div class="card" style="border-top: 3px solid var(--primary);">
+          <div class="card-header">
+            <span class="card-title">🌿 ตอนที่ 1: คัดกรองภาวะซึมเศร้า (2Q)</span>
+            <span class="badge-pill">2 ข้อ</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">ในระยะ 2 สัปดาห์ที่ผ่านมารวมวันนี้ ท่านมีอาการเหล่านี้หรือไม่?</p>
+          
+          <div class="question-box">
+            <div class="question-title">1. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ ท่านรู้สึกหดหู่ เศร้า หรือท้อแท้สิ้นหวัง หรือไม่?</div>
+            <div class="horizontal-options">
+              <label class="radio-label"><input type="radio" name="q2_1" value="0" checked onchange="check2QCondition()"> ไม่มี</label>
+              <label class="radio-label"><input type="radio" name="q2_1" value="1" onchange="check2QCondition()"> มี</label>
+            </div>
+          </div>
+
+          <div class="question-box">
+            <div class="question-title">2. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ ท่านรู้สึกเบื่อ ทำอะไรก็ไม่เพลิดเพลิน หรือไม่?</div>
+            <div class="horizontal-options">
+              <label class="radio-label"><input type="radio" name="q2_2" value="0" checked onchange="check2QCondition()"> ไม่มี</label>
+              <label class="radio-label"><input type="radio" name="q2_2" value="1" onchange="check2QCondition()"> มี</label>
+            </div>
+          </div>
+          
+          <div id="badge-2q-status" class="info-callout" style="margin-bottom:0;">
+            ผล 2Q เบื้องต้น: ปกติ (หากพบข้อใดข้อหนึ่งตอบ 'มี' ระบบจะเปิดแบบประเมิน 9Q อัตโนมัติ)
+          </div>
+        </div>
+
+        <!-- 9Q -->
+        <div class="card" id="section-9q">
+          <div class="card-header">
+            <span class="card-title" style="color: var(--accent);">⚠️ แบบประเมินโรคซึมเศร้า (9Q)</span>
+            <span class="badge-pill" style="background: var(--accent-soft); color: var(--accent);">ผล 2Q Positive</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">เนื่องจาก 2Q พบผลบวก กรุณาประเมินความถี่ของอาการในรอบ 2 สัปดาห์ที่ผ่านมา</p>
+          <div id="container-9q"></div>
+        </div>
+
+        <!-- Dementia 14Q -->
+        <div class="card" style="border-top: 3px solid #0284c7;">
+          <div class="card-header">
+            <span class="card-title">🧩 ตอนที่ 2: คัดกรองภาวะสมองเสื่อม 14 ข้อ</span>
+            <span class="badge-pill">Dementia 14Q</span>
+          </div>
+          <div id="container-dementia"></div>
+        </div>
+
+        <!-- Geriatric Syndromes -->
+        <div class="card" style="border-top: 3px solid #8b5cf6;">
+          <div class="card-header">
+            <span class="card-title">🩺 ตอนที่ 3: กลุ่มอาการผู้สูงอายุ (Geriatric Syndromes)</span>
+            <span class="badge-pill">6 ภาวะหลัก</span>
+          </div>
+          <div id="container-geriatric"></div>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn btn-primary" style="margin-top: 10px;">
+          💾 บันทึกและส่งข้อมูลขึ้นคลาวด์ส่วนกลาง
+        </button>
+      </form>
+    </section>
+
+    <!-- TAB 2: ข้อมูลรวม -->
+    <section id="tab-history" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📑 ฐานข้อมูลผู้รับการประเมิน (กลาง)</span>
+          <button class="btn btn-outline btn-sm" onclick="fetchCloudData(true)">🔄 รีเฟรช</button>
+        </div>
+        <div class="form-group">
+          <input type="text" id="searchPatient" placeholder="🔍 ค้นหาตามชื่อ-นามสกุล..." onkeyup="filterRecords()">
+        </div>
+        <div id="recordCount" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">ทั้งหมด: 0 รายการ</div>
+        <div id="recordList">
+          <p style="text-align: center; color: #94a3b8; padding: 20px 0;">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: สถิติ -->
+    <section id="tab-stats" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📊 สถิติรวมทั้งโครงการ</span>
+          <span class="badge-pill" id="stat-source-badge">คลาวด์ส่วนกลาง</span>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-val" id="stat-total">0</div>
+            <div class="stat-label">ผู้รับการคัดกรองทั้งหมด</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="stat-dementia-risk" style="color: #ea580c;">0%</div>
+            <div class="stat-label">เสี่ยงสมองเสื่อม (14Q ≥ 4)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="stat-depress-risk" style="color: #dc2626;">0%</div>
+            <div class="stat-label">เสี่ยงภาวะซึมเศร้า</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="stat-fall-risk" style="color: #7c3aed;">0%</div>
+            <div class="stat-label">เสี่ยงหกล้มในรอบปี</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 15px;">
+          <h4 style="font-size: 13px; margin-bottom: 8px; font-weight:700;">สัดส่วนความเสี่ยงภาวะสมองเสื่อม (14 ข้อ)</h4>
+          <div style="height: 180px; position: relative;">
+            <canvas id="chartDementia"></canvas>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <h4 style="font-size: 13px; margin-bottom: 8px; font-weight:700;">อุบัติการณ์ Geriatric Syndromes</h4>
+          <div style="height: 200px; position: relative;">
+            <canvas id="chartGeriatric"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: การตั้งค่าระบบส่วนกลาง -->
+    <section id="tab-sync" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">☁️ การเชื่อมโยงคลาวด์ส่วนกลาง</span>
+          <span class="badge-pill">Sync Config</span>
+        </div>
+        <div class="info-callout">
+          <strong>💡 ระบบเชื่อมโยงข้อมูล Real-time:</strong> ฐานข้อมูลคลาวด์เปิดใช้งานได้ทันที ทุกเครื่องที่ต่อเน็ตจะซิงก์ข้อมูลร่วมกันอัตโนมัติ
+        </div>
+
+        <div class="form-group">
+          <label>เลือกประเภทฐานข้อมูลส่วนกลาง:</label>
+          <select id="syncBackendType" onchange="changeSyncType()">
+            <option value="cloud_jsonbin">1. Cloud Sync (JSON Storage / ไม่ต้องตั้งค่า เปิดใช้ได้ทันที)</option>
+            <option value="google_sheets">2. Google Sheets API (ส่งข้อมูลลง Google Sheet)</option>
+          </select>
+        </div>
+
+        <div id="config-google-sheets" style="display:none; background:#f8fafc; padding:12px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);">
+          <div class="form-group">
+            <label>Google Apps Script Webhook URL:</label>
+            <input type="url" id="gasWebhookUrl" placeholder="https://script.google.com/macros/s/.../exec">
+            <small style="color: #64748b; font-size:11px;">นำ URL ที่ได้จากการ Deploy Web App มาวางที่นี่</small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>รหัสกลุ่มชุมชน / เขต (Project Key):</label>
+          <input type="text" id="projectKey" value="SALAYA-HEALTH-2026" placeholder="กำหนดรหัสหน่วยงาน">
+          <small style="color: #64748b; font-size:11px;">เครื่องทุกเครื่องที่ใช้รหัสเดียวกันจะเชื่อมโยงข้อมูลชุดเดียวกัน</small>
+        </div>
+
+        <button class="btn btn-outline" style="margin-bottom:10px;" onclick="saveSyncSettings()">💾 บันทึกการตั้งค่า</button>
+        <button class="btn btn-secondary" onclick="fetchCloudData(true)">🔄 ซิงก์ข้อมูลจากส่วนกลางเดี๋ยวนี้</button>
+      </div>
+    </section>
+
+    <!-- MODAL: รายละเอียดผลรายบุคคล -->
+    <div id="resultModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999; justify-content:center; align-items:center; padding:12px;">
+      <div style="background:white; max-width:440px; width:100%; max-height:90vh; overflow-y:auto; border-radius:var(--radius-lg); padding:18px; box-shadow:0 10px 25px rgba(0,0,0,0.3); position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
+          <h3 style="font-size:16px; color:var(--primary);">📋 ผลการประเมินรายบุคคล</h3>
+          <button onclick="closeModal()" style="border:none; background:transparent; font-size:22px; cursor:pointer; color:#94a3b8;">&times;</button>
+        </div>
+        
+        <div id="modalContent"></div>
+
+        <div style="margin-top:16px; display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-primary" onclick="exportCurrentPDF()">📄 ส่งออกเป็นไฟล์ PDF</button>
+          <button class="btn btn-secondary" onclick="closeModal()">ปิดหน้าต่าง</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- PDF TEMPLATE -->
+<div id="pdf-container" style="display:none; width:700px; padding:30px; font-family:'Sarabun', sans-serif; color:#1e293b; background:white;">
+  <div style="text-align:center; border-bottom:2px solid #1e5a52; padding-bottom:12px; margin-bottom:15px;">
+    <h2 style="color:#1e5a52; margin-bottom:4px; font-size:20px;">โครงการ "ศาลายา สมองดี ชีวีมีสุข"</h2>
+    <h4 style="font-weight:normal; color:#64748b; font-size:13px;">แบบบันทึกผลการคัดกรองสุขภาพสมอง ภาวะอารมณ์ และกลุ่มอาการผู้สูงอายุในชุมชน</h4>
+  </div>
+
+  <table style="width:100%; margin-bottom:14px; font-size:13px; border-collapse:collapse;">
+    <tr>
+      <td style="padding:4px 0;"><strong>ชื่อ-นามสกุล:</strong> <span id="pdf-name">-</span></td>
+      <td style="padding:4px 0;"><strong>อายุ:</strong> <span id="pdf-age">-</span> ปี</td>
+      <td style="padding:4px 0;"><strong>เพศ:</strong> <span id="pdf-gender">-</span></td>
+    </tr>
+    <tr>
+      <td style="padding:4px 0;"><strong>วันที่ประเมิน:</strong> <span id="pdf-date">-</span></td>
+      <td colspan="2" style="padding:4px 0;"><strong>ผู้ประเมิน:</strong> <span id="pdf-evaluator">-</span></td>
+    </tr>
+  </table>
+
+  <div style="border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:14px; background:#f8fafc;">
+    <h4 style="color:#1e5a52; margin-bottom:8px; font-size:14px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">สรุปผลการประเมิน 3 มิติ</h4>
+    <div id="pdf-scores" style="font-size:13px; line-height:1.7;"></div>
+  </div>
+
+  <div style="border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:18px; background:#f0fdf4;">
+    <h4 style="color:#166534; margin-bottom:6px; font-size:14px;">💡 คำแนะนำเบื้องต้นและการดูแลสุขภาพ</h4>
+    <div id="pdf-recommendations" style="font-size:12.5px; line-height:1.6; color:#14532d;"></div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; margin-top:35px; padding:0 20px;">
+    <div style="text-align:center; font-size:12px;">
+      <p style="margin-bottom:40px;">ลงชื่อ......................................................</p>
+      <p>(ผู้รับการประเมิน / ญาติ)</p>
+    </div>
+    <div style="text-align:center; font-size:12px;">
+      <p style="margin-bottom:40px;">ลงชื่อ......................................................</p>
+      <p>(<span id="pdf-evaluator-sign">...................................................</span>)</p>
+      <p>ผู้ประเมิน / เจ้าหน้าที่สาธารณสุข</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const dementiaQuestions = [
+    "1. หาของใช้ในบ้านไม่พบ",
+    "2. จำสถานที่ที่เคยไปบ่อยๆ ไม่ได้",
+    "3. ต้องกลับไปทบทวนงานที่แม้จะตั้งใจทำ ซ้ำถึง 2 ครั้ง",
+    "4. ลืมสิ่งของที่ตั้งใจว่าจะนำเอาออกไปนอกบ้านด้วย",
+    "5. ลืมเรื่องที่ได้รับฟังมาเมื่อวานนี้ หรือเมื่อ 2-3 วันก่อน",
+    "6. ลืมเพื่อนสนิท หรือญาติสนิท หรือบุคคลที่คบหากันบ่อยๆ",
+    "7. ไม่สามารถเข้าใจเนื้อเรื่องในหนังสือพิมพ์หรือสารคดีที่อ่าน/ฟัง",
+    "8. ลืมบอกข้อความที่คนอื่นวานให้มาบอกอีกคนหนึ่ง",
+    "9. ลืมข้อมูลส่วนตัวของตัวเอง เช่น วันเกิด ที่อยู่ เบอร์โทร",
+    "10. สับสนในรายละเอียดของเรื่องราวที่ได้รับฟังมา",
+    "11. ลืมที่ที่เคยวางสิ่งของนั้นเป็นประจำ หรือวางในที่แปลกๆ",
+    "12. ขณะเดินทาง หรือเดินเล่นในที่ที่เคยไป เกิดอาการหลงทิศ/หลงทาง",
+    "13. ทำกิจวัตรประจำวันบางอย่างซ้ำ เช่น ชงกาแฟซ้ำ ใส่เครื่องปรุงซ้ำ",
+    "14. เล่าเรื่องเดิมซ้ำอีกครั้งซึ่งเพิ่งเล่าจบไปเมื่อสักครู่"
+  ];
+
+  const q9Questions = [
+    "1. เบื่อ ไม่สนใจ หรือไม่เพลิดเพลินในการทำสิ่งต่างๆ",
+    "2. ไม่สบายใจ ซึมเศร้า หรือท้อแท้",
+    "3. หลับยาก หลับๆ ตื่นๆ หรือนอนหลับมากเกินไป",
+    "4. เหนื่อยง่าย หรือไม่ค่อยมีแรง",
+    "5. เบื่ออาหาร หรือกินอาหารมากเกินไป",
+    "6. รู้สึกไม่ดีกับตัวเอง คิดว่าตัวเองล้มเหลว หรือทำให้ครอบครัวผิดหวัง",
+    "7. สมาธิไม่ดีเวลาทำสิ่งใด เช่น ดูโทรทัศน์ หรือสนทนา",
+    "8. พูดช้า ทำอะไรช้าลง หรือกระสับกระส่ายจนคนอื่นสังเกตเห็น",
+    "9. คิดทำร้ายตนเอง หรือคิดว่าถ้าตายไปคงจะดีกว่า"
+  ];
+
+  const geriatricItems = [
+    { id: "fall", title: "1. ภาวะหกล้ม (Falls)", desc: "ในรอบ 1 ปีที่ผ่านมา ท่านเคยหกล้มหรือไม่?" },
+    { id: "frailty", title: "2. ภาวะเปราะบาง/มวลกล้ามเนื้อน้อย (Frailty)", desc: "รู้สึกเหนื่อยเพลีย ไม่มีแรง เดินช้าลง หรือน้ำหนักลดลงโดยไม่ได้ตั้งใจ?" },
+    { id: "incontinence", title: "3. ภาวะกลั้นปัสสาวะไม่อยู่ (Urinary Incontinence)", desc: "มีปัญหาปัสสาวะเล็ด ราด หรือกลั้นปัสสาวะไม่ได้จนรบกวนชีวิตประจำวัน?" },
+    { id: "sleep", title: "4. ปัญหาการนอนหลับ (Sleep Disturbance)", desc: "นอนไม่หลับ หลับยาก หรือตื่นกลางดึกเป็นประจำติดต่อกันหลายสัปดาห์?" },
+    { id: "polypharmacy", title: "5. การใช้ยาหลายขนาน (Polypharmacy)", desc: "รับประทานยาประจำตั้งแต่ 5 ชนิดขึ้นไปต่อวัน หรือมีอาการข้างเคียงจากยา?" },
+    { id: "sensory", title: "6. การมองเห็น/การได้ยิน (Sensory Impairment)", desc: "มีปัญหาตามัว มองไม่ชัด หรือหูตึง ฟังไม่ค่อยได้ยิน จนกระทบกิจวัตร?" }
+  ];
+
+  // CLOUD STORAGE CONFIG
+  const CLOUD_STORAGE_BASE = 'https://api.jsonstorage.net/v1/json'; 
+
+  let syncConfig = {
+    type: localStorage.getItem('salaya_sync_type') || 'cloud_jsonbin',
+    gasUrl: localStorage.getItem('salaya_gas_url') || '',
+    projectKey: localStorage.getItem('salaya_project_key') || 'SALAYA-HEALTH-2026'
+  };
+
+  let globalRecords = [];
+  let currentViewingRecord = null;
+  let isSubmitting = false; // ป้องกัน double submit
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('assessDate').valueAsDate = new Date();
+    renderDementiaQuestions();
+    render9QQuestions();
+    renderGeriatricQuestions();
+    
+    document.getElementById('syncBackendType').value = syncConfig.type;
+    document.getElementById('gasWebhookUrl').value = syncConfig.gasUrl;
+    document.getElementById('projectKey').value = syncConfig.projectKey;
+    changeSyncType();
+
+    fetchCloudData(false);
+  });
+
+  function showLoading(msg) {
+    document.getElementById('loadingText').innerText = msg;
+    document.getElementById('loadingOverlay').style.display = 'flex';
+  }
+  function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+
+  function changeSyncType() {
+    const type = document.getElementById('syncBackendType').value;
+    document.getElementById('config-google-sheets').style.display = (type === 'google_sheets') ? 'block' : 'none';
+  }
+
+  function saveSyncSettings() {
+    syncConfig.type = document.getElementById('syncBackendType').value;
+    syncConfig.gasUrl = document.getElementById('gasWebhookUrl').value.trim();
+    syncConfig.projectKey = document.getElementById('projectKey').value.trim() || 'SALAYA-HEALTH-2026';
+
+    localStorage.setItem('salaya_sync_type', syncConfig.type);
+    localStorage.setItem('salaya_gas_url', syncConfig.gasUrl);
+    localStorage.setItem('salaya_project_key', syncConfig.projectKey);
+
+    alert('บันทึกการตั้งค่าเรียบร้อยแล้ว');
+    fetchCloudData(true);
+  }
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.nav-tab').forEach((el, idx) => {
+      el.classList.toggle('active', (tabId === 'assess' && idx === 0) || (tabId === 'history' && idx === 1) || (tabId === 'stats' && idx === 2) || (tabId === 'sync' && idx === 3));
+    });
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+
+    if (tabId === 'history') renderHistoryList();
+    if (tabId === 'stats') updateStatisticsView();
+  }
+
+  function renderDementiaQuestions() {
+    const container = document.getElementById('container-dementia');
+    container.innerHTML = dementiaQuestions.map((q, idx) => `
+      <div class="question-box">
+        <div class="question-title">${q}</div>
+        <div class="radio-options">
+          <label class="radio-label"><input type="radio" name="dem_${idx}" value="0" checked> 0 = ไม่เคย / นานๆ ครั้ง</label>
+          <label class="radio-label"><input type="radio" name="dem_${idx}" value="1"> 1 = ไม่บ่อย (1-2 ครั้ง/เดือน)</label>
+          <label class="radio-label"><input type="radio" name="dem_${idx}" value="2"> 2 = ค่อนข้างบ่อย (เกือบทุกสัปดาห์)</label>
+          <label class="radio-label"><input type="radio" name="dem_${idx}" value="3"> 3 = ทุกวัน / เกือบทุกวัน</label>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function render9QQuestions() {
+    const container = document.getElementById('container-9q');
+    container.innerHTML = q9Questions.map((q, idx) => `
+      <div class="question-box">
+        <div class="question-title">${q}</div>
+        <div class="radio-options">
+          <label class="radio-label"><input type="radio" name="q9_${idx}" value="0" checked> 0 = ไม่มีเลย</label>
+          <label class="radio-label"><input type="radio" name="q9_${idx}" value="1"> 1 = เป็นบางวัน (1-7 วัน)</label>
+          <label class="radio-label"><input type="radio" name="q9_${idx}" value="2"> 2 = เป็นบ่อย (>7 วัน)</label>
+          <label class="radio-label"><input type="radio" name="q9_${idx}" value="3"> 3 = เป็นทุกวัน</label>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderGeriatricQuestions() {
+    const container = document.getElementById('container-geriatric');
+    container.innerHTML = geriatricItems.map(item => `
+      <div class="question-box">
+        <div class="question-title">${item.title}</div>
+        <p style="font-size:12px; color:#64748b; margin-bottom:6px;">${item.desc}</p>
+        <div class="horizontal-options">
+          <label class="radio-label"><input type="radio" name="geri_${item.id}" value="0" checked> ปกติ / ไม่มี</label>
+          <label class="radio-label"><input type="radio" name="geri_${item.id}" value="1"> พบปัญหา / มี</label>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function check2QCondition() {
+    const q1 = parseInt(document.querySelector('input[name="q2_1"]:checked').value);
+    const q2 = parseInt(document.querySelector('input[name="q2_2"]:checked').value);
+    const sec9q = document.getElementById('section-9q');
+    const badge2q = document.getElementById('badge-2q-status');
+
+    if (q1 === 1 || q2 === 1) {
+      sec9q.style.display = 'block';
+      badge2q.className = 'alert-callout';
+      badge2q.innerHTML = '⚠️ <strong>ผล 2Q ผิดปกติ (Positive):</strong> พบความเสี่ยงซึมเศร้า กรุณาทำแบบประเมิน 9Q ด้านล่างต่อ';
+    } else {
+      sec9q.style.display = 'none';
+      badge2q.className = 'info-callout';
+      badge2q.innerHTML = '✅ <strong>ผล 2Q ปกติ (Negative):</strong> ไม่มีความเสี่ยงซึมเศร้าในเบื้องต้น';
+    }
+  }
+
+  // SYNC & CRUD OPERATIONS
+  async function fetchCloudData(showAlert = false) {
+    showLoading('กำลังซิงก์ข้อมูลจากคลาวด์...');
+    const dot = document.getElementById('cloudDot');
+    const statusText = document.getElementById('cloudStatusText');
+
+    try {
+      if (syncConfig.type === 'google_sheets' && syncConfig.gasUrl) {
+        const res = await fetch(`${syncConfig.gasUrl}?action=get&project=${encodeURIComponent(syncConfig.projectKey)}`);
+        const data = await res.json();
+        globalRecords = Array.isArray(data) ? data : (data.records || []);
+      } else {
+        const binId = localStorage.getItem('salaya_cloud_bin_id');
+        if (binId) {
+          const res = await fetch(`${CLOUD_STORAGE_BASE}/${binId}`);
+          if (res.ok) {
+            const data = await res.json();
+            globalRecords = data.records || [];
+          }
+        }
+      }
+
+      // ถ้าไม่มีข้อมูลจาก Cloud เลย ให้ดึงจาก LocalStorage สำรอง
+      if (globalRecords.length === 0) {
+        const local = localStorage.getItem('salaya_brain_records');
+        if (local) globalRecords = JSON.parse(local);
+      }
+
+      localStorage.setItem('salaya_brain_records', JSON.stringify(globalRecords));
+      dot.className = 'status-dot';
+      statusText.innerText = `คลาวด์: เชื่อมต่อแล้ว (${globalRecords.length} คน)`;
+      if (showAlert) alert(`ซิงก์ข้อมูลสำเร็จ! มีทั้งหมด ${globalRecords.length} รายการ`);
+    } catch (err) {
+      console.warn('Sync Fallback:', err);
+      dot.className = 'status-dot offline';
+      statusText.innerText = 'โหมดออฟไลน์ (ใช้ข้อมูลในเครื่อง)';
+      const local = localStorage.getItem('salaya_brain_records');
+      if (local) globalRecords = JSON.parse(local);
+    } finally {
+      hideLoading();
+      renderHistoryList();
+      updateStatisticsView();
+    }
+  }
+
+  async function syncAllToCloud() {
+    localStorage.setItem('salaya_brain_records', JSON.stringify(globalRecords));
+    const dot = document.getElementById('cloudDot');
+    const statusText = document.getElementById('cloudStatusText');
+
+    try {
+      if (syncConfig.type === 'google_sheets' && syncConfig.gasUrl) {
+        await fetch(syncConfig.gasUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'sync_all', records: globalRecords, project: syncConfig.projectKey })
+        });
+      } else {
+        let binId = localStorage.getItem('salaya_cloud_bin_id');
+        if (!binId) {
+          const res = await fetch(CLOUD_STORAGE_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ project: syncConfig.projectKey, records: globalRecords })
+          });
+          const result = await res.json();
+          if (result.uri) {
+            binId = result.uri.split('/').pop();
+            localStorage.setItem('salaya_cloud_bin_id', binId);
+          }
+        } else {
+          await fetch(`${CLOUD_STORAGE_BASE}/${binId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ project: syncConfig.projectKey, records: globalRecords })
+          });
+        }
+      }
+      dot.className = 'status-dot';
+      statusText.innerText = `คลาวด์: ซิงก์สำเร็จ (${globalRecords.length} คน)`;
+    } catch (err) {
+      console.error('Push error:', err);
+      dot.className = 'status-dot offline';
+      statusText.innerText = 'บันทึกในเครื่องแล้ว (รอออนไลน์)';
+    }
+  }
+
+  // SUBMIT FORM WITH PREVENT MULTIPLE SUBMISSION
+  async function submitAssessment() {
+    if (isSubmitting) return; // ป้องกันการกดเบิ้ล
+
+    const name = document.getElementById('patientName').value.trim();
+    const age = parseInt(document.getElementById('patientAge').value);
+    const gender = document.getElementById('patientGender').value;
+    const date = document.getElementById('assessDate').value;
+    const evaluator = document.getElementById('evaluatorName').value.trim();
+
+    if (!name || isNaN(age) || !evaluator) {
+      alert('กรุณากรอกข้อมูลส่วนบุคคลและชื่อผู้ประเมินให้ครบถ้วน');
+      return;
+    }
+
+    // ล็อกปุ่มป้องกันกดซ้ำ
+    isSubmitting = true;
+    const submitBtn = document.getElementById('submitBtn');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '⏳ กำลังประมวลผลและส่งขึ้นคลาวด์...';
+
+    showLoading('กำลังบันทึกข้อมูล...');
+
+    const q2_1 = parseInt(document.querySelector('input[name="q2_1"]:checked').value);
+    const q2_2 = parseInt(document.querySelector('input[name="q2_2"]:checked').value);
+    const is2QPositive = (q2_1 === 1 || q2_2 === 1);
+
+    let q9Score = 0;
+    if (is2QPositive) {
+      for (let i = 0; i < 9; i++) {
+        q9Score += parseInt(document.querySelector(`input[name="q9_${i}"]:checked`)?.value || 0);
+      }
+    }
+
+    let demScore = 0;
+    for (let i = 0; i < 14; i++) {
+      const val = parseInt(document.querySelector(`input[name="dem_${i}"]:checked`).value);
+      if (val >= 2) demScore += 1;
+    }
+
+    const geriatric = {};
+    geriatricItems.forEach(item => {
+      geriatric[item.id] = parseInt(document.querySelector(`input[name="geri_${item.id}"]:checked`).value);
+    });
+
+    const recommendations = generateRecommendations(is2QPositive, q9Score, demScore, geriatric);
+
+    const newRecord = {
+      id: 'REC-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      name, age, gender, date, evaluator,
+      q2_1, q2_2,
+      q9Score: is2QPositive ? q9Score : 0,
+      dementiaScore: demScore,
+      geriatric,
+      recommendations
+    };
+
+    globalRecords.unshift(newRecord);
+    await syncAllToCloud();
+
+    // คืนค่าฟอร์ม
+    document.getElementById('screeningForm').reset();
+    document.getElementById('assessDate').valueAsDate = new Date();
+    check2QCondition();
+
+    hideLoading();
+    showResultDetail(newRecord);
+    renderHistoryList();
+    updateStatisticsView();
+
+    // ปลดล็อกปุ่ม
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnText;
+    isSubmitting = false;
+  }
+
+  // DELETE FUNCTIONALITY
+  async function deleteRecord(id, name) {
+    if (!confirm(`คุณต้องการลบข้อมูลของ "${name}" หรือไม่?\n(ข้อมูลจะถูกลบออกจากคลาวด์ส่วนกลางด้วย)`)) {
+      return;
+    }
+
+    showLoading('กำลังลบข้อมูลและอัปเดตสถิติ...');
+    globalRecords = globalRecords.filter(item => item.id !== id);
+    await syncAllToCloud();
+
+    hideLoading();
+    renderHistoryList();
+    updateStatisticsView();
+    alert('ลบข้อมูลเรียบร้อยแล้ว');
+  }
+
+  function generateRecommendations(is2QPositive, q9Score, demScore, geri) {
+    const recs = [];
+    if (demScore >= 4) {
+      recs.push("🧠 <strong>ภาวะสมองเสื่อม (เสี่ยงสูง):</strong> พบอาการผิดปกติ " + demScore + "/14 ข้อ แนะนำส่งต่อตรวจละเอียด (TMSE / MoCA)");
+    } else if (demScore >= 2) {
+      recs.push("🧠 <strong>ภาวะสมองเสื่อม (เฝ้าระวัง):</strong> พบอาการ " + demScore + "/14 ข้อ ส่งเสริมกิจกรรมฝึกสมองและเล่นเกมลับสมอง");
+    } else {
+      recs.push("🧠 <strong>ภาวะสมองเสื่อม (ปกติ):</strong> สภาพสมองดี ทานอาหารครบ 5 หมู่ และออกกำลังกายสม่ำเสมอ");
+    }
+
+    if (!is2QPositive) {
+      recs.push("🌿 <strong>ภาวะซึมเศร้า:</strong> 2Q ปกติ อารมณ์แจ่มใส");
+    } else {
+      if (q9Score >= 19) recs.push("⚠️ <strong>ภาวะซึมเศร้า (รุนแรง - 9Q = " + q9Score + "):</strong> ควรพบแพทย์โดยเร็วเพื่อตรวจรักษา");
+      else if (q9Score >= 13) recs.push("⚠️ <strong>ภาวะซึมเศร้า (ปานกลาง - 9Q = " + q9Score + "):</strong> ปรึกษาบุคลากรสุขภาพเพื่อประเมินต่อเนื่อง");
+      else if (q9Score >= 7) recs.push("🌿 <strong>ภาวะซึมเศร้า (เล็กน้อย - 9Q = " + q9Score + "):</strong> สนับสนุนกิจกรรมสังคม คลายเครียด");
+      else recs.push("🌿 <strong>ภาวะซึมเศร้า (ปกติ - 9Q = " + q9Score + "):</strong> สังเกตอารมณ์ตามระยะ");
+    }
+
+    const geriIssues = [];
+    if (geri.fall === 1) geriIssues.push("เสี่ยงหกล้ม (ตรวจราวจับ ไฟสว่าง พื้นกันลื่น)");
+    if (geri.frailty === 1) geriIssues.push("เปราะบาง/กล้ามเนื้อน้อย (เสริมโปรตีน ออกกำลังกายเบาๆ)");
+    if (geri.incontinence === 1) geriIssues.push("กลั้นปัสสาวะลำบาก (ฝึกขมิบกล้ามเนื้ออุ้งเชิงกราน)");
+    if (geri.sleep === 1) geriIssues.push("นอนไม่หลับ (ปรับสุขอนามัยการนอน เลี่ยงชา-กาแฟบ่าย)");
+    if (geri.polypharmacy === 1) geriIssues.push("ใช้ยา ≥5 ชนิด (ทบทวนยากับแพทย์/เภสัชกร)");
+    if (geri.sensory === 1) geriIssues.push("การได้ยิน/การมองเห็น (ตรวจวัดสายตาหรือตรวจการได้ยิน)");
+
+    if (geriIssues.length > 0) {
+      recs.push("🩺 <strong>กลุ่มอาการผู้สูงอายุที่พบ:</strong> " + geriIssues.join(", "));
+    } else {
+      recs.push("🩺 <strong>กลุ่มอาการผู้สูงอายุ:</strong> ไม่พบความผิดปกติเด่นชัด");
+    }
+    return recs;
+  }
+
+  function showResultDetail(rec) {
+    currentViewingRecord = rec;
+    const modal = document.getElementById('resultModal');
+    const content = document.getElementById('modalContent');
+
+    const demStatus = rec.dementiaScore >= 4 ? '<span class="status-badge status-alert">เสี่ยงสมองเสื่อม</span>' :
+                      rec.dementiaScore >= 2 ? '<span class="status-badge status-warn">ควรเฝ้าระวัง</span>' :
+                      '<span class="status-badge status-normal">ปกติ</span>';
+
+    const depressStatus = (rec.q2_1 === 0 && rec.q2_2 === 0) ? '<span class="status-badge status-normal">ปกติ (2Q Negative)</span>' :
+                          rec.q9Score >= 13 ? '<span class="status-badge status-alert">ซึมเศร้าปานกลาง-รุนแรง (9Q: ' + rec.q9Score + ')</span>' :
+                          rec.q9Score >= 7 ? '<span class="status-badge status-warn">ซึมเศร้าเล็กน้อย (9Q: ' + rec.q9Score + ')</span>' :
+                          '<span class="status-badge status-normal">ปกติ (9Q: ' + rec.q9Score + ')</span>';
+
+    const geriCount = Object.values(rec.geriatric).filter(v => v === 1).length;
+
+    content.innerHTML = `
+      <div style="background:#f8fafc; border-radius:8px; padding:10px; margin-bottom:12px; font-size:13px;">
+        <p><strong>ชื่อผู้รับการตรวจ:</strong> ${rec.name} (${rec.age} ปี, เพศ ${rec.gender})</p>
+        <p><strong>วันที่ตรวจ:</strong> ${rec.date} | <strong>ผู้ประเมิน:</strong> ${rec.evaluator}</p>
+        <p style="font-size:11px; color:#64748b;">รหัสอ้างอิง: ${rec.id}</p>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <h4 style="font-size:13.5px; margin-bottom:6px; color:var(--primary);">ผลการประเมิน:</h4>
+        <div style="font-size:13px; margin-bottom:4px;">• สมองเสื่อม (14 ข้อ): <strong>${rec.dementiaScore}/14 ข้อ</strong> &nbsp;${demStatus}</div>
+        <div style="font-size:13px; margin-bottom:4px;">• สุขภาพอารมณ์/ซึมเศร้า: &nbsp;${depressStatus}</div>
+        <div style="font-size:13px; margin-bottom:4px;">• กลุ่มอาการผู้สูงอายุ: พบ <strong>${geriCount} ด้าน</strong> จาก 6 ด้าน</div>
+      </div>
+
+      <div style="background:#ecfdf5; border-radius:8px; padding:10px; font-size:12.5px; border-left:3px solid #10b981;">
+        <h4 style="color:#065f46; margin-bottom:4px;">💡 คำแนะนำและการดูแล:</h4>
+        <ul style="padding-left:16px; color:#064e3b; margin:0;">
+          ${rec.recommendations.map(r => `<li style="margin-bottom:4px;">${r}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('resultModal').style.display = 'none';
+  }
+
+  function renderHistoryList() {
+    const list = document.getElementById('recordList');
+    document.getElementById('recordCount').innerText = `ทั้งหมด: ${globalRecords.length} รายการ`;
+
+    if (globalRecords.length === 0) {
+      list.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px 0;">ไม่มีข้อมูลในระบบ</p>';
+      return;
+    }
+
+    list.innerHTML = globalRecords.map(rec => {
+      const geriCount = Object.values(rec.geriatric).filter(v => v === 1).length;
+      return `
+        <div class="record-card" id="card-${rec.id}">
+          <div class="record-head">
+            <span>${rec.name} (${rec.age} ปี)</span>
+            <span style="font-size:11px; color:#64748b; font-weight:normal;">${rec.date}</span>
+          </div>
+          <div class="record-details">
+            <div>สมองเสื่อม: <strong>${rec.dementiaScore}/14 ข้อ</strong> | ซึมเศร้า: <strong>${(rec.q2_1===0 && rec.q2_2===0)?'ปกติ':`9Q=${rec.q9Score}`}</strong></div>
+            <div>Geriatric: <strong>${geriCount} ด้าน</strong> | ผู้ประเมิน: ${rec.evaluator}</div>
+          </div>
+          <div class="record-actions">
+            <button class="btn btn-outline btn-sm" onclick='viewHistoryItem("${rec.id}")'>ดูผล</button>
+            <button class="btn btn-secondary btn-sm" onclick='exportDirectPDF("${rec.id}")'>📄 PDF</button>
+            <button class="btn btn-danger-outline btn-sm" onclick='deleteRecord("${rec.id}", "${rec.name}")'>🗑️ ลบ</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function filterRecords() {
+    const q = document.getElementById('searchPatient').value.toLowerCase();
+    const cards = document.querySelectorAll('.record-card');
+    cards.forEach(card => {
+      const txt = card.innerText.toLowerCase();
+      card.style.display = txt.includes(q) ? 'block' : 'none';
+    });
+  }
+
+  function viewHistoryItem(id) {
+    const rec = globalRecords.find(r => r.id === id);
+    if (rec) showResultDetail(rec);
+  }
+
+  function exportDirectPDF(id) {
+    const rec = globalRecords.find(r => r.id === id);
+    if (rec) {
+      currentViewingRecord = rec;
+      exportCurrentPDF();
+    }
+  }
+
+  function exportCurrentPDF() {
+    if (!currentViewingRecord) return;
+    const r = currentViewingRecord;
+
+    document.getElementById('pdf-name').innerText = r.name;
+    document.getElementById('pdf-age').innerText = r.age;
+    document.getElementById('pdf-gender').innerText = r.gender;
+    document.getElementById('pdf-date').innerText = r.date;
+    document.getElementById('pdf-evaluator').innerText = r.evaluator;
+    document.getElementById('pdf-evaluator-sign').innerText = r.evaluator;
+
+    const demDesc = r.dementiaScore >= 4 ? 'มีความเสี่ยงภาวะสมองเสื่อมสูง' : (r.dementiaScore >= 2 ? 'ควรเฝ้าระวัง' : 'อยู่ในเกณฑ์ปกติ');
+    const depressDesc = (r.q2_1 === 0 && r.q2_2 === 0) ? 'ปกติ ไม่มีความเสี่ยง' : `ผล 2Q บวกร่วมกับ 9Q ได้ ${r.q9Score} คะแนน`;
+    const geriCount = Object.values(r.geriatric).filter(v => v === 1).length;
+
+    document.getElementById('pdf-scores').innerHTML = `
+      <p>1. <strong>ผลการคัดกรองภาวะสมองเสื่อม (14 ข้อ):</strong> พบอาการบ่อย ${r.dementiaScore} จาก 14 ข้อ &mdash; <span style="color:${r.dementiaScore>=4?'#dc2626':'#16a34a'}; font-weight:bold;">${demDesc}</span></p>
+      <p>2. <strong>ผลการประเมินอารมณ์และภาวะซึมเศร้า (2Q/9Q):</strong> ${depressDesc}</p>
+      <p>3. <strong>กลุ่มอาการผู้สูงอายุ (Geriatric Syndromes):</strong> ตรวจพบความเสี่ยง ${geriCount} กลุ่มอาการ</p>
+    `;
+
+    document.getElementById('pdf-recommendations').innerHTML = r.recommendations.map(item => `<div style="margin-bottom:4px;">${item}</div>`).join('');
+
+    const element = document.getElementById('pdf-container');
+    element.style.display = 'block';
+
+    const opt = {
+      margin: 10,
+      filename: `รายงานคัดกรอง_${r.name}_${r.date}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.display = 'none';
+    });
+  }
+
+  // STATISTICS CALCULATION & CHARTS
+  let dementiaChartInstance = null;
+  let geriatricChartInstance = null;
+
+  function updateStatisticsView() {
+    const total = globalRecords.length;
+    document.getElementById('stat-total').innerText = total;
+
+    if (total === 0) {
+      document.getElementById('stat-dementia-risk').innerText = "0%";
+      document.getElementById('stat-depress-risk').innerText = "0%";
+      document.getElementById('stat-fall-risk').innerText = "0%";
+      if (dementiaChartInstance) { dementiaChartInstance.destroy(); dementiaChartInstance = null; }
+      if (geriatricChartInstance) { geriatricChartInstance.destroy(); geriatricChartInstance = null; }
+      return;
+    }
+
+    const demRisks = globalRecords.filter(r => r.dementiaScore >= 4).length;
+    const demWatch = globalRecords.filter(r => r.dementiaScore >= 2 && r.dementiaScore < 4).length;
+    const demNormal = globalRecords.filter(r => r.dementiaScore < 2).length;
+
+    const depressRisks = globalRecords.filter(r => (r.q2_1 === 1 || r.q2_2 === 1)).length;
+    const fallRisks = globalRecords.filter(r => r.geriatric && r.geriatric.fall === 1).length;
+
+    document.getElementById('stat-dementia-risk').innerText = Math.round((demRisks / total) * 100) + "%";
+    document.getElementById('stat-depress-risk').innerText = Math.round((depressRisks / total) * 100) + "%";
+    document.getElementById('stat-fall-risk').innerText = Math.round((fallRisks / total) * 100) + "%";
+
+    const ctxDem = document.getElementById('chartDementia').getContext('2d');
+    if (dementiaChartInstance) dementiaChartInstance.destroy();
+    dementiaChartInstance = new Chart(ctxDem, {
+      type: 'doughnut',
+      data: {
+        labels: ['ปกติ', 'เฝ้าระวัง', 'เสี่ยงสูง'],
+        datasets: [{
+          data: [demNormal, demWatch, demRisks],
+          backgroundColor: ['#22c55e', '#f59e0b', '#ef4444']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+
+    const counts = { fall: 0, frailty: 0, incontinence: 0, sleep: 0, polypharmacy: 0, sensory: 0 };
+    globalRecords.forEach(r => {
+      if (r.geriatric) {
+        Object.keys(counts).forEach(k => {
+          if (r.geriatric[k] === 1) counts[k]++;
+        });
+      }
+    });
+
+    const ctxGeri = document.getElementById('chartGeriatric').getContext('2d');
+    if (geriatricChartInstance) geriatricChartInstance.destroy();
+    geriatricChartInstance = new Chart(ctxGeri, {
+      type: 'bar',
+      data: {
+        labels: ['หกล้ม', 'เปราะบาง', 'ปัสสาวะ', 'นอนไม่หลับ', 'ยาหลายตัว', 'ตา/หู'],
+        datasets: [{
+          label: 'จำนวนที่พบ (คน)',
+          data: Object.values(counts),
+          backgroundColor: '#1e5a52'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
